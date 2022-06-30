@@ -46,7 +46,7 @@ def send_message(bot, message):
         logger.info(f'Бот отправил сообщение: {message}')
         bot.send_message(TELEGRAM_CHAT_ID, message)
     except telegram.TelegramError:
-        logger.error(f'Сообщение не отправлено')
+        logger.error('Сообщение не отправлено')
         raise telegram.TelegramError
 
 
@@ -60,7 +60,7 @@ def get_api_answer(current_timestamp):
         if result.status_code != HTTPStatus.OK:
             status = result.status_code
             logger.error(
-                f'Сбой в работе программы: Эндпоинт {response}.'
+                f'Сбой в работе программы: Эндпоинт {result}.'
                 f'Недоступен. Код ответа: {status}')
             raise telegram.error.BadRequest
     except telegram.TelegramError as error:
@@ -72,11 +72,11 @@ def get_api_answer(current_timestamp):
 
 
 def check_response(response):
-    """Функция проверки данных от API и формирование словаря с последней
-    домашкой."""
+    """Функция проверки данных от API и формирование словаря 
+    с последней домашкой.
+    """
     if type(response) != dict:
-        logger.error(
-            f'API возвращает не тот тип данных.')
+        logger.error('API возвращает не тот тип данных.')
         raise TypeError('API возвращает не тот тип данных.')
     homework = response['homeworks'][0]
     return homework
@@ -85,12 +85,12 @@ def check_response(response):
 def parse_status(homework):
     """Проверка словаря с последней домашкой и формирование сообщения."""
     if 'homework_name' not in homework:
-        raise KeyError(f'Нет ключей в json')
+        raise KeyError('Нет ключей в json')
     homework_name = homework['homework_name']
     homework_status = homework['status']
     verdict = HOMEWORK_STATUSES[homework_status]
     if homework_status not in HOMEWORK_STATUSES:
-        logger.error('Отсутствие статуса домашней работы в списке')
+        logger.error('Отсутствие статуса домашней работы в списке.')
         raise telegram.TelegramError
 
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
@@ -109,8 +109,8 @@ def main():
     current_timestamp = int(time.time())
     old_message = ''
     if check_tokens() is False:
-        logger.critical('Проверка токенов провалена')
-        raise telegram.error.InvalidToken(f'Проверка токенов провалена')
+        logger.critical('Проверка токенов провалена.')
+        raise telegram.error.InvalidToken('Проверка токенов провалена.')
     while True:
         try:
             response = get_api_answer(current_timestamp)
