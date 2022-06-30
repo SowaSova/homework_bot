@@ -73,8 +73,8 @@ def get_api_answer(current_timestamp):
 
 def check_response(response):
     """Функция проверки данных от API.
-    Формирование словаря с последней
-    домашкой."""
+    Формирование словаря с последней домашкой.
+    """
     if type(response) != dict:
         logger.error('API возвращает не тот тип данных.')
         raise TypeError('API возвращает не тот тип данных.')
