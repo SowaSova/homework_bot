@@ -70,7 +70,7 @@ def check_response(response):
     if not isinstance(response, dict):
         logger.error('API возвращает не словарь.')
         raise TypeError('API возвращает не словарь.')
-    if 'current_date' and 'homeworks' is None:
+    if 'current_date' and 'homeworks' != None:
         raise KeyError('Отсутствуют ключи current_date и homeworks.')
     homework = response.get('homeworks')
     if not isinstance(homework, list):
@@ -132,4 +132,3 @@ if __name__ == '__main__':
     logger.addHandler(handler)
 
     main()
-
