@@ -1,17 +1,20 @@
+import logging
+import os
+import sys
+import time
 from http import HTTPStatus
+from logging import StreamHandler
+
+import requests
 import telegram
 from dotenv import load_dotenv
-import os
-import requests
-import time
-import logging
-from logging import StreamHandler
-import sys
+
 import exceptions
 
-
-
 load_dotenv()
+
+
+logger = logging.getLogger(__name__)
 
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
@@ -19,7 +22,7 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 
-RETRY_TIME = 5
+RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -42,24 +45,21 @@ def send_message(bot, message):
 
 def get_api_answer(current_timestamp):
     """Функция получения ответа от API."""
-    timestamp = current_timestamp
-    params = {'from_date': 0}
+    timestamp = current_timestamp or int(time.time())
+    params = {'from_date': timestamp}
     try:
-        result = requests.get(
+        response = requests.get(
             ENDPOINT, headers=HEADERS, params=params)
         logger.info('Запрос к API отправлен.')
-        if result.status_code != HTTPStatus.OK:
-            status = result.status_code
+        if response.status_code != HTTPStatus.OK:
+            status = response.status_code
             logger.error(
-                f'Сбой в работе программы: Эндпоинт {result}.'
+                f'Сбой в работе программы: Эндпоинт {response}.'
                 f'Недоступен. Код ответа: {status}')
             raise exceptions.ConnectionError
-
     except telegram.TelegramError as error:
-        logger.error(f'Ошибка с API: {error}')
         raise telegram.TelegramError(f'Ошибка в API:{error}')
-    response = result.json()
-
+    response = response.json()
     return response
 
 
@@ -68,22 +68,23 @@ def check_response(response):
     Формирование словаря с последней домашкой.
     """
     if not isinstance(response, dict):
-        logger.error('API возвращает не тот тип данных.')
-        raise TypeError('API возвращает не тот тип данных.')
-    if response['current_date'] is None or not int(time.time()):
-        raise KeyError('Ошибка ключа current_date.')
-    homework = response['homeworks']
-    if homework is None:
-        raise KeyError('Нет ключа homework.')
+        logger.error('API возвращает не словарь.')
+        raise TypeError('API возвращает не словарь.')
+    if 'current_date' and 'homeworks' is None:
+        raise KeyError('Отсутствуют ключи current_date и homeworks.')
+    homework = response.get('homeworks')
+    if not isinstance(homework, list):
+        logger.error('Ключ homework - не список.')
+        raise TypeError('Ключ homework - не список.')
     return homework
 
 
 def parse_status(homework):
     """Проверка словаря с последней домашкой и формирование сообщения."""
-    if 'homework_name' not in homework[0]:
-        raise KeyError('Нет ключей в json')
-    homework_name = homework[0]['homework_name']
-    homework_status = homework[0]['status']
+    if 'homework_name' not in homework:
+        raise KeyError('Нет ключей в json.')
+    homework_name = homework['homework_name']
+    homework_status = homework['status']
     verdict = HOMEWORK_VERDICTS[homework_status]
     if homework_status not in HOMEWORK_VERDICTS:
         logger.error('Отсутствие статуса домашней работы в списке.')
@@ -108,10 +109,10 @@ def main():
     while True:
         try:
             response = get_api_answer(current_timestamp)
-            current_timestamp = response['current_date']
-            homework = check_response(response)
+            homeworks = check_response(response)
+            homework = homeworks[0]
             message = parse_status(homework)
-            if old_message != message:
+            if old_message != message and len(homeworks) > 0:
                 send_message(bot, message)
                 old_message = message
         except Exception as error:
@@ -123,11 +124,12 @@ def main():
 
 
 if __name__ == '__main__':
-    logger = logging.getLogger(__name__)
     formatter = logging.Formatter(
         '%(asctime)s - %(levelname)s - %(name)s - %(message)s')
     logger.setLevel(logging.INFO)
     handler = StreamHandler(stream=sys.stdout)
     handler.setFormatter(formatter)
     logger.addHandler(handler)
+
     main()
+
