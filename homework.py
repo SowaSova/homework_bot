@@ -70,8 +70,8 @@ def check_response(response):
     if not isinstance(response, dict):
         logger.error('API возвращает не словарь.')
         raise TypeError('API возвращает не словарь.')
-    if 'current_date' and 'homeworks' != None:
-        raise KeyError('Отсутствуют ключи current_date и homeworks.')
+    if 'homeworks' is None:
+        raise KeyError('Отсутствует ключ homeworks.')
     homework = response.get('homeworks')
     if not isinstance(homework, list):
         logger.error('Ключ homework - не список.')
