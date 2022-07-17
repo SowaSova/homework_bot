@@ -22,7 +22,7 @@ TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 
-RETRY_TIME = 600
+RETRY_TIME = 5
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -101,7 +101,6 @@ def main():
     """Основная логика работы бота."""
     bot = telegram.Bot(TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
-    old_message = None
     if check_tokens() is False:
         raise exceptions.CriticalException('Проверка токенов провалена.')
     while True:
@@ -112,7 +111,6 @@ def main():
                 homework = homeworks[0]
                 message = parse_status(homework)
                 send_message(bot, message)
-            current_timestamp = int(time.time())
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
             logger.error(message)
